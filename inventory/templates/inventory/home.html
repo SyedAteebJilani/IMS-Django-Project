@@ -1,0 +1,72 @@
+{% extends 'inventory/base.html' %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="fw-bold text-dark">Dashboard</h2>
+    <div class="d-flex gap-2">
+        <a href="{% url 'add_purchase' %}" class="btn btn-warning text-dark fw-bold">
+            + Record Purchase
+        </a>
+        <a href="{% url 'add_item' %}" class="btn btn-success fw-bold">
+            + Add New Item
+        </a>
+        <a href="{% url 'add_category' %}" class="btn btn-secondary">
+            + Category
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card p-4 shadow-sm border-0 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold">Sales Overview (Last 30 Days)</h5>
+                <a href="{% url 'export_csv' %}" class="btn btn-sm btn-outline-primary">Export CSV</a>
+            </div>
+            <canvas id="salesChart" style="max-height: 400px;"></canvas>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card p-4 h-100 shadow-sm border-0">
+            <h5 class="fw-bold mb-3 text-danger">Low Stock Alert</h5>
+            <ul class="list-group list-group-flush">
+                {% for item in low_stock_items %}
+                <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                    <span>{{ item.name }}</span>
+                    <span class="badge bg-danger rounded-pill">{{ item.quantity }} left</span>
+                </li>
+                {% empty %}
+                <li class="list-group-item text-muted text-center py-3">No items low on stock.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+
+<script>
+    const ctx = document.getElementById('salesChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: {{ graph_dates|safe }},
+            datasets: [{
+                label: 'Sales (PKR)',
+                data: {{ graph_sales|safe }},
+                borderColor: '#0d6efd',
+                backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: { beginAtZero: true }
+            }
+        }
+    });
+</script>
+{% endblock %}
