@@ -2,22 +2,23 @@ from django.urls import path
 from .views import (
     CustomLoginView, HomeView, ProductListView, AddProductView, 
     SaleView, export_daily_sales, export_monthly_sales, 
-    AddCategoryView, delete_sale, AddPurchaseView
+    AddCategoryView, delete_sale, AddPurchaseView, SignUpView
 )
 from django.contrib.auth.views import LogoutView
 
 urlpatterns = [
+    # --- Auth Routes ---
+    path('', CustomLoginView.as_view(), name='root'), # Root URL now opens Login
     path('login/', CustomLoginView.as_view(), name='login'),
     path('logout/', LogoutView.as_view(next_page='login'), name='logout'),
+    path('signup/', SignUpView.as_view(), name='signup'),
     
-    path('', HomeView.as_view(), name='dashboard'),
-    path('home/', HomeView.as_view(), name='home'),
+    # --- Main App Routes ---
+    path('dashboard/', HomeView.as_view(), name='dashboard'), # Dashboard is now here
     
     path('products/', ProductListView.as_view(), name='product_list'),
-    
-    # Fixed: Support both 'add_item' (for dashboard) and 'add_product' (for modal)
     path('products/add/', AddProductView.as_view(), name='add_item'),
-    path('products/new/', AddProductView.as_view(), name='add_product'), 
+    path('products/new/', AddProductView.as_view(), name='add_product'),
     
     path('products/add-category/', AddCategoryView.as_view(), name='add_category'),
     path('purchase/add/', AddPurchaseView.as_view(), name='add_purchase'),

@@ -2,7 +2,9 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import ListView, CreateView, TemplateView, View
 from django.contrib.auth.views import LoginView
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.forms import AuthenticationForm
 from .models import Item, Purchase, Category, SaleRecord
+from .forms import SignUpForm
 from django.urls import reverse_lazy
 from django.db.models import Sum
 from django.utils import timezone
@@ -11,9 +13,44 @@ import csv
 from django.http import HttpResponse, JsonResponse
 from django.db import transaction
 from django.contrib import messages
+from django.contrib.auth import login
 
 class CustomLoginView(LoginView):
     template_name = 'inventory/login.html'
+    redirect_authenticated_user = True
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['signup_form'] = SignUpForm()
+        context['active_panel'] = 'login' 
+        return context
+
+class SignUpView(CreateView):
+    model = Item # Dummy model, not used directly logic handles user
+    form_class = SignUpForm
+    template_name = 'inventory/login.html'
+    success_url = reverse_lazy('dashboard')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['login_form'] = AuthenticationForm()
+        context['active_panel'] = 'signup'
+        return context
+
+    def form_valid(self, form):
+        # Save the user
+        user = form.save()
+        # Log the user in immediately
+        login(self.request, user)
+        return redirect(self.success_url)
+
+    def form_invalid(self, form):
+        # If signup fails, reload login page with errors and 'signup' panel active
+        return render(self.request, self.template_name, {
+            'form': form,
+            'login_form': AuthenticationForm(),
+            'active_panel': 'signup'
+        })
 
 class HomeView(LoginRequiredMixin, TemplateView):
     template_name = 'inventory/home.html'
@@ -23,7 +60,6 @@ class HomeView(LoginRequiredMixin, TemplateView):
         user = self.request.user
         today = timezone.now().date()
         
-        # Stats Cards
         sales_today = SaleRecord.objects.filter(user=user, date_sold__date=today).aggregate(total=Sum('total_price'))['total'] or 0
         all_sales = SaleRecord.objects.filter(user=user)
         total_revenue = all_sales.aggregate(total=Sum('total_price'))['total'] or 0
@@ -36,7 +72,6 @@ class HomeView(LoginRequiredMixin, TemplateView):
         context['total_inventory_value'] = total_inventory_value
         context['low_stock_items'] = Item.objects.filter(user=user, quantity__lt=10)
 
-        # Graph Data (Last 30 Days)
         dates = []
         sales_data = []
         for i in range(30):
@@ -69,11 +104,10 @@ class ProductListView(LoginRequiredMixin, ListView):
 class AddProductView(LoginRequiredMixin, CreateView):
     model = Item
     fields = ['name', 'category', 'company', 'selling_price', 'quantity', 'average_cost']
-    template_name = 'inventory/add_item.html' # Explicitly use the add_item template
+    template_name = 'inventory/add_item.html'
     success_url = reverse_lazy('product_list')
     
     def form_valid(self, form):
-        # Input Hardening
         try:
             if form.cleaned_data.get('quantity') is not None and form.cleaned_data.get('quantity') < 0:
                 form.add_error('quantity', "Quantity must be positive")
@@ -103,7 +137,6 @@ class AddPurchaseView(LoginRequiredMixin, CreateView):
 
     def form_valid(self, form):
         form.instance.user = self.request.user
-        # The Purchase model's save() method handles updating Item quantity/cost
         return super().form_valid(form)
 
 class SaleView(LoginRequiredMixin, View):
