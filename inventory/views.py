@@ -4,7 +4,7 @@ from django.contrib.auth.views import LoginView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.forms import AuthenticationForm
 from .models import Item, Purchase, Category, SaleRecord
-from .forms import SignUpForm
+from .forms import SignUpForm, ItemForm, PurchaseForm
 from django.urls import reverse_lazy
 from django.db.models import Sum
 from django.utils import timezone
@@ -26,7 +26,7 @@ class CustomLoginView(LoginView):
         return context
 
 class SignUpView(CreateView):
-    model = Item # Dummy model, not used directly logic handles user
+    model = Item 
     form_class = SignUpForm
     template_name = 'inventory/login.html'
     success_url = reverse_lazy('dashboard')
@@ -38,14 +38,11 @@ class SignUpView(CreateView):
         return context
 
     def form_valid(self, form):
-        # Save the user
         user = form.save()
-        # Log the user in immediately
         login(self.request, user)
         return redirect(self.success_url)
 
     def form_invalid(self, form):
-        # If signup fails, reload login page with errors and 'signup' panel active
         return render(self.request, self.template_name, {
             'form': form,
             'login_form': AuthenticationForm(),
@@ -103,7 +100,7 @@ class ProductListView(LoginRequiredMixin, ListView):
 
 class AddProductView(LoginRequiredMixin, CreateView):
     model = Item
-    fields = ['name', 'category', 'company', 'selling_price', 'quantity', 'average_cost']
+    form_class = ItemForm
     template_name = 'inventory/add_item.html'
     success_url = reverse_lazy('product_list')
     
@@ -120,6 +117,7 @@ class AddProductView(LoginRequiredMixin, CreateView):
 
         form.instance.user = self.request.user
         self.object = form.save()
+        
         if self.request.headers.get('x-requested-with') == 'XMLHttpRequest':
             return JsonResponse({'status': 'success', 'message': 'Product added successfully!'})
         return super().form_valid(form)
@@ -131,7 +129,7 @@ class AddProductView(LoginRequiredMixin, CreateView):
 
 class AddPurchaseView(LoginRequiredMixin, CreateView):
     model = Purchase
-    fields = ['item', 'quantity', 'unit_price']
+    form_class = PurchaseForm
     template_name = 'inventory/add_purchase.html'
     success_url = reverse_lazy('dashboard')
 

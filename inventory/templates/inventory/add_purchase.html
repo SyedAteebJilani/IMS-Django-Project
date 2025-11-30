@@ -1,10 +1,152 @@
 {% extends 'inventory/base.html' %}
 {% block content %}
-<h2>Record Purchase</h2>
-<form method="post">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit" class="btn btn-primary">Save Purchase</button>
-    <a href="{% url 'dashboard' %}" class="btn btn-secondary">Cancel</a>
-</form>
+
+<style>
+    /* --- Modern Form Card --- */
+    .form-card {
+        background-color: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        max-width: 550px;
+        margin: 0 auto;
+        overflow: hidden;
+    }
+
+    .form-header {
+        padding: 2rem 2rem 1.5rem;
+        text-align: center;
+        border-bottom: 1px solid var(--border-color);
+        background-color: var(--bg-primary);
+    }
+
+    .form-body {
+        padding: 2rem;
+    }
+
+    /* --- Input Styles --- */
+    .custom-label {
+        color: var(--text-muted);
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+
+    .custom-input {
+        background-color: var(--bg-primary) !important;
+        border: 1px solid var(--border-color) !important;
+        color: var(--text-main) !important;
+        padding: 0.8rem 1rem;
+        border-radius: 8px;
+        width: 100%;
+        transition: all 0.2s ease;
+    }
+
+    .custom-input:focus {
+        border-color: #f59e0b !important; /* Amber Focus */
+        box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1) !important;
+        transform: translateY(-1px);
+    }
+
+    /* --- Buttons --- */
+    /* Restock Button: Amber Outline -> Solid Hover */
+    .btn-restock {
+        background-color: transparent;
+        border: 1px solid #f59e0b;
+        color: #f59e0b;
+        padding: 0.8rem;
+        border-radius: 8px;
+        font-weight: 600;
+        width: 100%;
+        transition: all 0.2s ease-in-out;
+    }
+    .btn-restock:hover {
+        background-color: #f59e0b;
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(245, 158, 11, 0.25);
+    }
+
+    .btn-cancel {
+        background-color: transparent;
+        border: 1px solid var(--border-color);
+        color: var(--text-muted);
+        padding: 0.8rem;
+        border-radius: 8px;
+        font-weight: 600;
+        width: 100%;
+        text-align: center;
+        display: block;
+        transition: all 0.2s;
+    }
+    .btn-cancel:hover {
+        background-color: var(--bg-hover);
+        color: var(--text-main);
+        border-color: var(--text-main);
+    }
+</style>
+
+<div class="container py-4">
+    <div class="form-card">
+        <div class="form-header">
+            <div class="d-inline-flex align-items-center justify-content-center bg-warning bg-opacity-10 text-warning rounded-circle mb-3" style="width: 48px; height: 48px;">
+                <i class="bi bi-box-arrow-in-down fs-4"></i>
+            </div>
+            <h3 class="fw-bold mb-1">Restock Inventory</h3>
+            <p class="small mb-0" style="color: var(--text-muted);">Add new stock to existing items</p>
+        </div>
+
+        <div class="form-body">
+            <form method="post">
+                {% csrf_token %}
+                
+                <div class="mb-4">
+                    <label class="custom-label">Select Item</label>
+                    {{ form.item }}
+                </div>
+
+                <div class="row g-3 mb-5">
+                    <div class="col-md-6">
+                        <label class="custom-label">Quantity</label>
+                        {{ form.quantity }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="custom-label">Unit Cost (PKR)</label>
+                        <div class="input-group">
+                            <span class="input-group-text" style="background-color: var(--bg-secondary); border-color: var(--border-color); color: var(--text-muted);">Rs.</span>
+                            {{ form.unit_price }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-6">
+                        <a href="{% url 'dashboard' %}" class="btn btn-cancel">
+                            Cancel
+                        </a>
+                    </div>
+                    <div class="col-6">
+                        <button type="submit" class="btn btn-restock">
+                            Confirm Restock
+                        </button>
+                    </div>
+                </div>
+
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const selects = document.querySelectorAll('select');
+        selects.forEach(select => {
+            select.classList.add('form-select', 'custom-input');
+        });
+    });
+</script>
+
 {% endblock %}

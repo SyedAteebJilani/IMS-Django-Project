@@ -1,50 +1,190 @@
 {% extends 'inventory/base.html' %}
 {% block content %}
+
+<style>
+    /* --- 1. Outline Action Buttons --- */
+    .btn-action {
+        background-color: transparent;
+        border: 2px solid transparent;
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        transition: all 0.2s ease-in-out;
+        display: flex;
+        align-items: center;
+        font-weight: 600;
+        font-size: 0.95rem;
+    }
+
+    .btn-action:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        color: white !important;
+    }
+
+    /* Colors */
+    .btn-purchase { color: #f59e0b; border-color: #f59e0b; }
+    .btn-purchase:hover { background-color: #f59e0b; }
+
+    .btn-item { color: #10b981; border-color: #10b981; }
+    .btn-item:hover { background-color: #10b981; }
+
+    .btn-category { color: #6366f1; border-color: #6366f1; }
+    .btn-category:hover { background-color: #6366f1; }
+
+    /* --- 2. Headings --- */
+    .card-header-custom {
+        font-family: 'Inter', sans-serif;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: var(--text-muted);
+        margin-bottom: 1rem;
+    }
+
+    .card-title-main {
+        font-weight: 700;
+        color: var(--text-main);
+        letter-spacing: -0.02em;
+    }
+
+    /* --- 3. New Low Stock Widget --- */
+    .low-stock-container {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        max-height: 350px;
+        overflow-y: auto;
+        padding-right: 5px; /* Space for scrollbar */
+    }
+
+    /* Custom Scrollbar for the list */
+    .low-stock-container::-webkit-scrollbar { width: 4px; }
+    .low-stock-container::-webkit-scrollbar-thumb { background-color: var(--border-color); border-radius: 4px; }
+
+    .alert-card {
+        background-color: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 0.8rem 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        transition: all 0.2s ease;
+        cursor: default;
+    }
+
+    .alert-card:hover {
+        transform: translateX(4px); /* Slide effect */
+        border-color: #ef4444; /* Red border on hover */
+        background-color: var(--bg-primary);
+        box-shadow: 0 4px 12px rgba(239, 68, 68, 0.1);
+    }
+
+    .alert-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        background-color: rgba(239, 68, 68, 0.1);
+        color: #ef4444;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+        margin-right: 12px;
+        flex-shrink: 0;
+    }
+
+    .item-name {
+        font-weight: 600;
+        color: var(--text-main);
+        font-size: 0.95rem;
+        display: block;
+        line-height: 1.2;
+    }
+
+    .item-qty {
+        font-size: 0.75rem;
+        color: #ef4444;
+        font-weight: 600;
+        background-color: rgba(239, 68, 68, 0.05);
+        padding: 4px 8px;
+        border-radius: 6px;
+        white-space: nowrap;
+    }
+</style>
+
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="fw-bold text-dark">Dashboard</h2>
+    <h2 class="card-title-main h2">Dashboard</h2>
     <div class="d-flex gap-2">
-        <a href="{% url 'add_purchase' %}" class="btn btn-warning text-dark fw-bold">
-            + Record Purchase
+        <a href="{% url 'add_purchase' %}" class="btn btn-action btn-purchase">
+            <i class="bi bi-cart-plus me-2"></i> Restock Inventory
         </a>
-        <a href="{% url 'add_item' %}" class="btn btn-success fw-bold">
-            + Add New Item
+        <a href="{% url 'add_item' %}" class="btn btn-action btn-item">
+            <i class="bi bi-plus-lg me-2"></i> Add Item
         </a>
-        <a href="{% url 'add_category' %}" class="btn btn-secondary">
-            + Category
+        <a href="{% url 'add_category' %}" class="btn btn-action btn-category">
+            <i class="bi bi-tags me-2"></i> Category
         </a>
     </div>
 </div>
 
-<div class="row">
+<div class="row g-4">
     <div class="col-md-8">
         <div class="card p-4 shadow-sm border-0 h-100">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h5 class="fw-bold">Sales Overview (Last 30 Days)</h5>
-                <a href="{% url 'export_csv' %}" class="btn btn-sm btn-outline-primary">Export CSV</a>
+            <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3" style="border-color: var(--border-color) !important;">
+                <h5 class="card-header-custom mb-0">Sales Overview (30 Days)</h5>
+                <a href="{% url 'export_csv' %}" class="btn btn-sm btn-outline-primary" style="border-radius: 6px; font-weight: 600; font-size: 0.8rem;">
+                    <i class="bi bi-download me-1"></i> Export CSV
+                </a>
             </div>
-            <canvas id="salesChart" style="max-height: 400px;"></canvas>
+            <div style="position: relative; height: 350px; width: 100%;">
+                <canvas id="salesChart"></canvas>
+            </div>
         </div>
     </div>
 
     <div class="col-md-4">
         <div class="card p-4 h-100 shadow-sm border-0">
-            <h5 class="fw-bold mb-3 text-danger">Low Stock Alert</h5>
-            <ul class="list-group list-group-flush">
+            <div class="d-flex align-items-center justify-content-between mb-4">
+                <h5 class="card-header-custom mb-0 text-danger">Low Stock Alert</h5>
+                <span class="badge bg-danger bg-opacity-10 text-danger rounded-pill">{{ low_stock_count }} Items</span>
+            </div>
+            
+            <div class="low-stock-container">
                 {% for item in low_stock_items %}
-                <li class="list-group-item d-flex justify-content-between align-items-center px-0">
-                    <span>{{ item.name }}</span>
-                    <span class="badge bg-danger rounded-pill">{{ item.quantity }} left</span>
-                </li>
+                <div class="alert-card">
+                    <div class="d-flex align-items-center">
+                        <div class="alert-icon">
+                            <i class="bi bi-exclamation-triangle-fill"></i>
+                        </div>
+                        <div>
+                            <span class="item-name">{{ item.name }}</span>
+                            <small style="color: var(--text-muted);">Reorder soon</small>
+                        </div>
+                    </div>
+                    <span class="item-qty">{{ item.quantity }} Left</span>
+                </div>
                 {% empty %}
-                <li class="list-group-item text-muted text-center py-3">No items low on stock.</li>
+                <div class="text-center py-5">
+                    <div class="d-inline-flex align-items-center justify-content-center bg-success bg-opacity-10 text-success rounded-circle mb-3" style="width: 48px; height: 48px;">
+                        <i class="bi bi-check-lg fs-4"></i>
+                    </div>
+                    <p class="mb-0 fw-medium" style="color: var(--text-main);">All stock levels normal</p>
+                    <small style="color: var(--text-muted);">Good job keeping up!</small>
+                </div>
                 {% endfor %}
-            </ul>
+            </div>
         </div>
     </div>
 </div>
 
 <script>
     const ctx = document.getElementById('salesChart').getContext('2d');
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const gridColor = isDark ? '#333' : '#f0f0f0';
+    const textColor = isDark ? '#999' : '#666';
+
     new Chart(ctx, {
         type: 'line',
         data: {
@@ -53,18 +193,43 @@
                 label: 'Sales (PKR)',
                 data: {{ graph_sales|safe }},
                 borderColor: '#0d6efd',
-                backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                backgroundColor: 'rgba(13, 110, 253, 0.05)',
+                borderWidth: 2,
                 tension: 0.4,
-                fill: true
+                fill: true,
+                pointBackgroundColor: '#fff',
+                pointBorderColor: '#0d6efd',
+                pointRadius: 4,
+                pointHoverRadius: 6
             }]
         },
         options: {
             responsive: true,
+            maintainAspectRatio: false,
             plugins: {
-                legend: { display: false }
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: isDark ? '#333' : '#fff',
+                    titleColor: isDark ? '#fff' : '#000',
+                    bodyColor: isDark ? '#ccc' : '#666',
+                    borderColor: isDark ? '#444' : '#e5e5e5',
+                    borderWidth: 1,
+                    padding: 10,
+                    displayColors: false,
+                    callbacks: { label: (c) => 'PKR ' + c.parsed.y }
+                }
             },
             scales: {
-                y: { beginAtZero: true }
+                x: {
+                    grid: { display: false },
+                    ticks: { color: textColor, font: { family: 'Inter', size: 11 } }
+                },
+                y: {
+                    beginAtZero: true,
+                    grid: { color: gridColor, borderDash: [5, 5] },
+                    ticks: { color: textColor, font: { family: 'Inter', size: 11 } },
+                    border: { display: false }
+                }
             }
         }
     });

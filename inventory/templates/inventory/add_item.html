@@ -1,10 +1,182 @@
 {% extends 'inventory/base.html' %}
 {% block content %}
-<h2>Add New Item</h2>
-<form method="post">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit" class="btn btn-success">Save Item</button>
-    <a href="{% url 'dashboard' %}" class="btn btn-secondary">Cancel</a>
-</form>
+
+<style>
+    /* --- Modern Form Card --- */
+    .form-card {
+        background-color: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        max-width: 600px;
+        margin: 0 auto;
+        overflow: hidden;
+    }
+
+    .form-header {
+        padding: 2rem 2rem 1.5rem;
+        text-align: center;
+        border-bottom: 1px solid var(--border-color);
+        background-color: var(--bg-primary);
+    }
+
+    .form-body {
+        padding: 2rem;
+    }
+
+    /* --- Input Styles --- */
+    .custom-label {
+        color: var(--text-muted);
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+
+    .custom-input {
+        background-color: var(--bg-primary) !important;
+        border: 1px solid var(--border-color) !important;
+        color: var(--text-main) !important;
+        padding: 0.8rem 1rem;
+        border-radius: 8px;
+        width: 100%;
+        transition: all 0.2s ease;
+    }
+
+    .custom-input:focus {
+        border-color: var(--accent-blue) !important;
+        box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.1) !important;
+        transform: translateY(-1px);
+    }
+
+    /* --- Error Text --- */
+    .text-danger {
+        font-size: 0.85rem;
+        margin-top: 0.25rem;
+    }
+
+    /* --- Buttons --- */
+    .btn-save {
+        background-color: transparent;
+        border: 1px solid #10b981;
+        color: #10b981;
+        padding: 0.8rem;
+        border-radius: 8px;
+        font-weight: 600;
+        width: 100%;
+        transition: all 0.2s ease-in-out;
+    }
+    .btn-save:hover {
+        background-color: #10b981;
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+    }
+
+    .btn-cancel {
+        background-color: transparent;
+        border: 1px solid var(--border-color);
+        color: var(--text-muted);
+        padding: 0.8rem;
+        border-radius: 8px;
+        font-weight: 600;
+        width: 100%;
+        text-align: center;
+        display: block;
+        transition: all 0.2s;
+    }
+    .btn-cancel:hover {
+        background-color: var(--bg-hover);
+        color: var(--text-main);
+        border-color: var(--text-main);
+    }
+</style>
+
+<div class="container py-4">
+    <div class="form-card">
+        <div class="form-header">
+            <div class="d-inline-flex align-items-center justify-content-center bg-success bg-opacity-10 text-success rounded-circle mb-3" style="width: 48px; height: 48px;">
+                <i class="bi bi-box-seam fs-4"></i>
+            </div>
+            <h3 class="fw-bold mb-1">Add New Item</h3>
+            <p class="small mb-0" style="color: var(--text-muted);">Enter product details below</p>
+            
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger mt-3 mb-0 py-2 small">
+                {{ form.non_field_errors }}
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="form-body">
+            <form method="post">
+                {% csrf_token %}
+                
+                <div class="mb-4">
+                    <label class="custom-label">Product Name</label>
+                    {{ form.name }}
+                    <div class="text-danger">{{ form.name.errors }}</div>
+                </div>
+
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <label class="custom-label">Category</label>
+                        {{ form.category }}
+                        <div class="text-danger">{{ form.category.errors }}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="custom-label">Company / Brand</label>
+                        {{ form.company }}
+                        <div class="text-danger">{{ form.company.errors }}</div>
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <label class="custom-label">Selling Price (PKR)</label>
+                        <div class="input-group">
+                            <span class="input-group-text" style="background-color: var(--bg-secondary); border-color: var(--border-color); color: var(--text-muted);">Rs.</span>
+                            {{ form.selling_price }}
+                        </div>
+                        <div class="text-danger">{{ form.selling_price.errors }}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="custom-label">Avg. Cost (Optional)</label>
+                        <div class="input-group">
+                            <span class="input-group-text" style="background-color: var(--bg-secondary); border-color: var(--border-color); color: var(--text-muted);">Rs.</span>
+                            {{ form.average_cost }}
+                        </div>
+                        <div class="text-danger">{{ form.average_cost.errors }}</div>
+                    </div>
+                </div>
+
+                <div class="mb-5">
+                    <label class="custom-label">Initial Quantity</label>
+                    {{ form.quantity }}
+                    <div class="text-danger">{{ form.quantity.errors }}</div>
+                    <div class="form-text small mt-1" style="color: var(--text-muted);">
+                        <i class="bi bi-info-circle me-1"></i> You can add more stock later via Purchase.
+                    </div>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-6">
+                        <a href="{% url 'dashboard' %}" class="btn btn-cancel">
+                            Cancel
+                        </a>
+                    </div>
+                    <div class="col-6">
+                        <button type="submit" class="btn btn-save">
+                            Save Product
+                        </button>
+                    </div>
+                </div>
+
+            </form>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
