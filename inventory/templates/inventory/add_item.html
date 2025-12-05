@@ -45,6 +45,18 @@
         transition: all 0.2s ease;
     }
 
+    /* Fix: Ensure dropdown options have correct background */
+    .custom-input option {
+        background-color: var(--bg-primary);
+        color: var(--text-main);
+    }
+
+    /* Fix: Placeholder visibility */
+    .custom-input::placeholder {
+        color: var(--text-muted) !important;
+        opacity: 0.7;
+    }
+
     .custom-input:focus {
         border-color: var(--accent-blue) !important;
         box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.1) !important;
@@ -143,7 +155,7 @@
                         <div class="text-danger">{{ form.selling_price.errors }}</div>
                     </div>
                     <div class="col-md-6">
-                        <label class="custom-label">Avg. Cost (Optional)</label>
+                        <label class="custom-label">Buying Price (Cost)</label>
                         <div class="input-group">
                             <span class="input-group-text" style="background-color: var(--bg-secondary); border-color: var(--border-color); color: var(--text-muted);">Rs.</span>
                             {{ form.average_cost }}

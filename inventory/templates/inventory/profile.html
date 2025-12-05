@@ -1,0 +1,81 @@
+{% extends 'inventory/base.html' %}
+{% block content %}
+
+<style>
+    .profile-card {
+        background-color: #ffffff;
+        border: 1px solid var(--border-color);
+        border-radius: 16px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
+    .form-section-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--text-main);
+        margin-bottom: 1.5rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+    .btn-save {
+        background-color: #0d6efd;
+        color: white;
+        border: none;
+        padding: 0.7rem 2rem;
+        border-radius: 8px;
+        font-weight: 500;
+        transition: background 0.2s;
+    }
+    .btn-save:hover { background-color: #0b5ed7; }
+</style>
+
+<div class="container py-4">
+    <div class="profile-card">
+        <h2 class="fw-bold mb-4">My Profile</h2>
+
+        {% if messages %}
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} border-0 shadow-sm mb-4 rounded-3">
+                {{ message }}
+            </div>
+            {% endfor %}
+        {% endif %}
+
+        <form method="post" class="mb-5">
+            {% csrf_token %}
+            <div class="form-section-title">
+                <i class="bi bi-person-gear me-2"></i> Business & Personal Details
+            </div>
+            
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label small fw-bold text-muted">Full Name</label>
+                    {{ profile_form.full_name }}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label small fw-bold text-muted">Email Address</label>
+                    {{ profile_form.email }}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label small fw-bold text-muted">Business Name (Shop Name)</label>
+                    {{ profile_form.business_name }}
+                    <div class="form-text small">This name will appear on the sidebar.</div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label small fw-bold text-muted">Phone Number</label>
+                    {{ profile_form.phone_number }}
+                </div>
+            </div>
+            
+            <div class="text-end mt-4">
+                <button type="submit" name="update_profile" class="btn btn-save">
+                    Save Changes
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}

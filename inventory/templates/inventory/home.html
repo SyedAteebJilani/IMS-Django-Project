@@ -2,7 +2,44 @@
 {% block content %}
 
 <style>
-    /* --- 1. Outline Action Buttons --- */
+    /* --- DASHBOARD GRID --- */
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1.25rem;
+        padding-bottom: 2rem;
+    }
+
+    @media (max-width: 1200px) { .dashboard-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 768px) { .dashboard-grid { grid-template-columns: 1fr; } }
+
+    /* --- CARDS --- */
+    .dash-card {
+        background-color: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 1.25rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05); /* Soft shadow */
+        position: relative;
+        overflow: hidden;
+    }
+
+    .dash-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        color: var(--text-muted);
+        font-size: 0.85rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    /* --- BUTTONS --- */
     .btn-action {
         background-color: transparent;
         border: 2px solid transparent;
@@ -14,224 +51,335 @@
         font-weight: 600;
         font-size: 0.95rem;
     }
-
     .btn-action:hover {
         transform: translateY(-2px);
         box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         color: white !important;
     }
 
-    /* Colors */
-    .btn-purchase { color: #f59e0b; border-color: #f59e0b; }
+    .btn-purchase { color: #f59e0b !important; border-color: #f59e0b; }
     .btn-purchase:hover { background-color: #f59e0b; }
 
-    .btn-item { color: #10b981; border-color: #10b981; }
+    .btn-item { color: #10b981 !important; border-color: #10b981; }
     .btn-item:hover { background-color: #10b981; }
 
-    .btn-category { color: #6366f1; border-color: #6366f1; }
-    .btn-category:hover { background-color: #6366f1; }
-
-    /* --- 2. Headings --- */
-    .card-header-custom {
-        font-family: 'Inter', sans-serif;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        font-size: 0.85rem;
-        font-weight: 700;
-        color: var(--text-muted);
-        margin-bottom: 1rem;
-    }
-
-    .card-title-main {
-        font-weight: 700;
-        color: var(--text-main);
-        letter-spacing: -0.02em;
-    }
-
-    /* --- 3. New Low Stock Widget --- */
-    .low-stock-container {
-        display: flex;
-        flex-direction: column;
-        gap: 0.75rem;
-        max-height: 350px;
-        overflow-y: auto;
-        padding-right: 5px; /* Space for scrollbar */
-    }
-
-    /* Custom Scrollbar for the list */
-    .low-stock-container::-webkit-scrollbar { width: 4px; }
-    .low-stock-container::-webkit-scrollbar-thumb { background-color: var(--border-color); border-radius: 4px; }
-
-    .alert-card {
-        background-color: var(--bg-secondary);
+    /* --- CHART TOGGLES --- */
+    .chart-toggle-btn {
+        background: transparent;
         border: 1px solid var(--border-color);
-        border-radius: 12px;
-        padding: 0.8rem 1rem;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        transition: all 0.2s ease;
-        cursor: default;
-    }
-
-    .alert-card:hover {
-        transform: translateX(4px); /* Slide effect */
-        border-color: #ef4444; /* Red border on hover */
-        background-color: var(--bg-primary);
-        box-shadow: 0 4px 12px rgba(239, 68, 68, 0.1);
-    }
-
-    .alert-icon {
-        width: 32px;
-        height: 32px;
-        border-radius: 8px;
-        background-color: rgba(239, 68, 68, 0.1);
-        color: #ef4444;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1rem;
-        margin-right: 12px;
-        flex-shrink: 0;
-    }
-
-    .item-name {
-        font-weight: 600;
-        color: var(--text-main);
-        font-size: 0.95rem;
-        display: block;
-        line-height: 1.2;
-    }
-
-    .item-qty {
+        color: var(--text-muted);
+        padding: 2px 8px;
         font-size: 0.75rem;
-        color: #ef4444;
-        font-weight: 600;
-        background-color: rgba(239, 68, 68, 0.05);
-        padding: 4px 8px;
-        border-radius: 6px;
-        white-space: nowrap;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.2s;
     }
+    .chart-toggle-btn.active, .chart-toggle-btn:hover {
+        background-color: var(--accent-blue);
+        color: white;
+        border-color: var(--accent-blue);
+    }
+
+    /* --- STATS --- */
+    .stat-value { font-size: 2rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.25rem; }
+    .stat-label { font-size: 0.85rem; color: var(--text-muted); }
+    
+    .accent-bar {
+        position: absolute;
+        top: 0; left: 0; width: 100%; height: 3px;
+        background: linear-gradient(90deg, var(--accent-blue), #06b6d4);
+    }
+
+    .span-2 { grid-column: span 2; }
+    .span-3 { grid-column: span 3; }
+    @media (max-width: 1200px) { .span-2, .span-3 { grid-column: span 1; } }
+    
+    .chart-container { position: relative; flex-grow: 1; min-height: 200px; width: 100%; }
+
+    /* --- LOG LISTS --- */
+    .log-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    .log-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 0.9rem;
+        color: var(--text-main);
+    }
+    .log-item:last-child { border-bottom: none; }
+    .log-date { font-size: 0.8rem; color: var(--text-muted); width: 80px; }
+    .log-name { flex-grow: 1; font-weight: 500; }
+    .log-qty { color: var(--text-muted); margin: 0 1rem; }
+    .log-total { font-weight: 600; min-width: 70px; text-align: right; }
 </style>
 
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="card-title-main h2">Dashboard</h2>
+    <h2 class="fw-bold" style="color: var(--text-main);">Dashboard Overview</h2>
     <div class="d-flex gap-2">
         <a href="{% url 'add_purchase' %}" class="btn btn-action btn-purchase">
-            <i class="bi bi-cart-plus me-2"></i> Restock Inventory
+            <i class="bi bi-cart-plus me-2"></i> Restock
         </a>
         <a href="{% url 'add_item' %}" class="btn btn-action btn-item">
             <i class="bi bi-plus-lg me-2"></i> Add Item
         </a>
-        <a href="{% url 'add_category' %}" class="btn btn-action btn-category">
-            <i class="bi bi-tags me-2"></i> Category
-        </a>
     </div>
 </div>
 
-<div class="row g-4">
-    <div class="col-md-8">
-        <div class="card p-4 shadow-sm border-0 h-100">
-            <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3" style="border-color: var(--border-color) !important;">
-                <h5 class="card-header-custom mb-0">Sales Overview (30 Days)</h5>
-                <a href="{% url 'export_csv' %}" class="btn btn-sm btn-outline-primary" style="border-radius: 6px; font-weight: 600; font-size: 0.8rem;">
-                    <i class="bi bi-download me-1"></i> Export CSV
-                </a>
+<div class="dashboard-grid">
+
+    <div class="dash-card">
+        <div class="accent-bar" style="background: #10b981;"></div>
+        <div class="dash-header">
+            <span>Today's Sales</span>
+            <i class="bi bi-lightning-charge-fill text-success"></i>
+        </div>
+        <div>
+            <div class="stat-value">PKR {{ sales_today }}</div>
+            <div class="stat-label">{{ items_sold_today }} items sold today</div>
+        </div>
+    </div>
+
+    <div class="dash-card">
+        <div class="dash-header">
+            <span>Monthly Revenue</span>
+            <i class="bi bi-currency-dollar"></i>
+        </div>
+        <div>
+            <div class="stat-value">PKR {{ monthly_revenue }}</div>
+            <div class="stat-label">This Month</div>
+        </div>
+    </div>
+
+    <div class="dash-card">
+        <div class="dash-header">
+            <span>Est. Profit</span>
+            <i class="bi bi-wallet2"></i>
+        </div>
+        <div>
+            <div class="stat-value" style="color: #10b981;">PKR {{ monthly_profit }}</div>
+            <div class="stat-label">Margin</div>
+        </div>
+    </div>
+
+    <div class="dash-card">
+        <div class="dash-header">
+            <span>Asset Value</span>
+            <i class="bi bi-safe"></i>
+        </div>
+        <div>
+            <div class="stat-value">PKR {{ total_inventory_value }}</div>
+            <div class="stat-label">Total Stock</div>
+        </div>
+    </div>
+
+    <div class="dash-card span-3" style="min-height: 350px;">
+        <div class="dash-header">
+            <span>Sales Trend</span>
+            <div class="d-flex gap-2">
+                <button class="chart-toggle-btn" onclick="updateChart('7d')" id="btn7d">7 Days</button>
+                <button class="chart-toggle-btn active" onclick="updateChart('30d')" id="btn30d">30 Days</button>
             </div>
-            <div style="position: relative; height: 350px; width: 100%;">
-                <canvas id="salesChart"></canvas>
+        </div>
+        <div class="chart-container">
+            <canvas id="salesChart"></canvas>
+        </div>
+    </div>
+
+    <div class="dash-card" style="min-height: 350px;">
+        <div class="dash-header">
+            <span>Top Products</span>
+        </div>
+        <div class="chart-container">
+            <canvas id="topProductsChart"></canvas>
+        </div>
+    </div>
+
+    <div class="dash-card span-2" style="min-height: 300px;">
+        <div class="dash-header">
+            <span>Sales by Category</span>
+        </div>
+        <div class="d-flex align-items-center justify-content-center h-100">
+            <div style="width: 250px; height: 250px;">
+                <canvas id="categoryChart"></canvas>
             </div>
         </div>
     </div>
 
-    <div class="col-md-4">
-        <div class="card p-4 h-100 shadow-sm border-0">
-            <div class="d-flex align-items-center justify-content-between mb-4">
-                <h5 class="card-header-custom mb-0 text-danger">Low Stock Alert</h5>
-                <span class="badge bg-danger bg-opacity-10 text-danger rounded-pill">{{ low_stock_count }} Items</span>
-            </div>
-            
-            <div class="low-stock-container">
-                {% for item in low_stock_items %}
-                <div class="alert-card">
-                    <div class="d-flex align-items-center">
-                        <div class="alert-icon">
-                            <i class="bi bi-exclamation-triangle-fill"></i>
-                        </div>
-                        <div>
-                            <span class="item-name">{{ item.name }}</span>
-                            <small style="color: var(--text-muted);">Reorder soon</small>
-                        </div>
-                    </div>
-                    <span class="item-qty">{{ item.quantity }} Left</span>
-                </div>
+    <div class="dash-card span-2" style="min-height: 300px;">
+        <div class="dash-header">
+            <span class="text-danger"><i class="bi bi-exclamation-triangle me-2"></i>Critical Stock</span>
+            <span class="badge bg-danger bg-opacity-10 text-danger">{{ low_stock_count }} Items</span>
+        </div>
+        <ul class="list-group list-group-flush custom-scroll" style="overflow-y: auto; max-height: 220px;">
+            {% for item in low_stock_items %}
+            <li class="list-group-item bg-transparent d-flex justify-content-between align-items-center border-bottom border-secondary">
+                <span style="color: var(--text-main);">{{ item.name }}</span>
+                <span class="badge bg-danger bg-opacity-10 text-danger">{{ item.quantity }} Left</span>
+            </li>
+            {% empty %}
+            <li class="list-group-item bg-transparent text-center text-muted border-0 py-4">
+                No items low on stock.
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <div class="dash-card span-2" style="min-height: 350px;">
+        <div class="dash-header">
+            <span><i class="bi bi-calendar-check me-2 text-primary"></i>Sales Log: {{ current_month_name }}</span>
+            <span class="badge bg-primary bg-opacity-10 text-primary">Current</span>
+        </div>
+        <div class="custom-scroll" style="overflow-y: auto; flex-grow: 1;">
+            <ul class="log-list">
+                {% for sale in current_month_records %}
+                <li class="log-item">
+                    <span class="log-date">{{ sale.date_sold|date:"d M" }}</span>
+                    <span class="log-name text-truncate">{{ sale.product.name }}</span>
+                    <span class="log-qty">x{{ sale.quantity }}</span>
+                    <span class="log-total">{{ sale.total_price }}</span>
+                </li>
                 {% empty %}
-                <div class="text-center py-5">
-                    <div class="d-inline-flex align-items-center justify-content-center bg-success bg-opacity-10 text-success rounded-circle mb-3" style="width: 48px; height: 48px;">
-                        <i class="bi bi-check-lg fs-4"></i>
-                    </div>
-                    <p class="mb-0 fw-medium" style="color: var(--text-main);">All stock levels normal</p>
-                    <small style="color: var(--text-muted);">Good job keeping up!</small>
-                </div>
+                <li class="text-center py-5 text-muted small">No sales recorded this month.</li>
                 {% endfor %}
-            </div>
+            </ul>
         </div>
     </div>
+
+    <div class="dash-card span-2" style="min-height: 350px;">
+        <div class="dash-header">
+            <span><i class="bi bi-clock-history me-2 text-secondary"></i>Sales Log: {{ prev_month_name }}</span>
+            <span class="badge bg-secondary bg-opacity-10 text-secondary">Previous</span>
+        </div>
+        <div class="custom-scroll" style="overflow-y: auto; flex-grow: 1;">
+            <ul class="log-list">
+                {% for sale in previous_month_records %}
+                <li class="log-item">
+                    <span class="log-date">{{ sale.date_sold|date:"d M" }}</span>
+                    <span class="log-name text-truncate">{{ sale.product.name }}</span>
+                    <span class="log-qty">x{{ sale.quantity }}</span>
+                    <span class="log-total">{{ sale.total_price }}</span>
+                </li>
+                {% empty %}
+                <li class="text-center py-5 text-muted small">No sales recorded last month.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
 </div>
 
 <script>
-    const ctx = document.getElementById('salesChart').getContext('2d');
-    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-    const gridColor = isDark ? '#333' : '#f0f0f0';
-    const textColor = isDark ? '#999' : '#666';
+    // Theme Colors (Fixed for Dim Light Theme)
+    const textColor = '#4b5563'; // Gray-600
+    const gridColor = '#e5e7eb'; // Gray-200
+    const accentColor = '#06b6d4'; 
 
-    new Chart(ctx, {
+    // DATA from Django
+    const dates30 = {{ graph_dates_30|safe }};
+    const sales30 = {{ graph_sales_30|safe }};
+    const dates7 = {{ graph_dates_7|safe }};
+    const sales7 = {{ graph_sales_7|safe }};
+
+    // 1. Sales Trend Chart
+    const ctxSales = document.getElementById('salesChart').getContext('2d');
+    const gradSales = ctxSales.createLinearGradient(0, 0, 0, 300);
+    gradSales.addColorStop(0, 'rgba(6, 182, 212, 0.5)');
+    gradSales.addColorStop(1, 'rgba(6, 182, 212, 0.0)');
+
+    let salesChart = new Chart(ctxSales, {
         type: 'line',
         data: {
-            labels: {{ graph_dates|safe }},
+            labels: dates30,
             datasets: [{
                 label: 'Sales (PKR)',
-                data: {{ graph_sales|safe }},
-                borderColor: '#0d6efd',
-                backgroundColor: 'rgba(13, 110, 253, 0.05)',
+                data: sales30,
+                borderColor: accentColor,
+                backgroundColor: gradSales,
                 borderWidth: 2,
                 tension: 0.4,
                 fill: true,
-                pointBackgroundColor: '#fff',
-                pointBorderColor: '#0d6efd',
-                pointRadius: 4,
+                pointRadius: 0,
                 pointHoverRadius: 6
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false },
-                tooltip: {
-                    backgroundColor: isDark ? '#333' : '#fff',
-                    titleColor: isDark ? '#fff' : '#000',
-                    bodyColor: isDark ? '#ccc' : '#666',
-                    borderColor: isDark ? '#444' : '#e5e5e5',
-                    borderWidth: 1,
-                    padding: 10,
-                    displayColors: false,
-                    callbacks: { label: (c) => 'PKR ' + c.parsed.y }
-                }
-            },
+            plugins: { legend: { display: false } },
             scales: {
-                x: {
-                    grid: { display: false },
-                    ticks: { color: textColor, font: { family: 'Inter', size: 11 } }
-                },
-                y: {
-                    beginAtZero: true,
-                    grid: { color: gridColor, borderDash: [5, 5] },
-                    ticks: { color: textColor, font: { family: 'Inter', size: 11 } },
-                    border: { display: false }
-                }
+                x: { grid: { display: false }, ticks: { color: textColor } },
+                y: { grid: { color: gridColor }, ticks: { color: textColor }, beginAtZero: true }
             }
         }
     });
+
+    // INTERACTIVE TOGGLE
+    function updateChart(range) {
+        document.querySelectorAll('.chart-toggle-btn').forEach(btn => btn.classList.remove('active'));
+        document.getElementById(`btn${range}`).classList.add('active');
+
+        if (range === '7d') {
+            salesChart.data.labels = dates7;
+            salesChart.data.datasets[0].data = sales7;
+        } else {
+            salesChart.data.labels = dates30;
+            salesChart.data.datasets[0].data = sales30;
+        }
+        salesChart.update();
+    }
+
+    // 2. Top Products
+    const ctxTop = document.getElementById('topProductsChart').getContext('2d');
+    new Chart(ctxTop, {
+        type: 'bar',
+        data: {
+            labels: {{ top_products_labels|safe }},
+            datasets: [{
+                label: 'Units Sold',
+                data: {{ top_products_data|safe }},
+                backgroundColor: [accentColor, '#3b82f6', '#6366f1', '#8b5cf6', '#a855f7'],
+                borderRadius: 4,
+                barThickness: 20
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { grid: { color: gridColor }, ticks: { color: textColor } },
+                y: { grid: { display: false }, ticks: { color: textColor } }
+            }
+        }
+    });
+
+    // 3. Category Chart
+    const ctxCat = document.getElementById('categoryChart').getContext('2d');
+    new Chart(ctxCat, {
+        type: 'doughnut',
+        data: {
+            labels: {{ category_labels|safe }},
+            datasets: [{
+                data: {{ category_data|safe }},
+                backgroundColor: [accentColor, '#6366f1', '#10b981', '#f59e0b', '#ef4444'],
+                borderWidth: 0,
+                hoverOffset: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { 
+                legend: { position: 'right', labels: { color: textColor, usePointStyle: true } } 
+            },
+            cutout: '70%'
+        }
+    });
 </script>
+
 {% endblock %}
