@@ -83,19 +83,13 @@ class PurchaseForm(forms.ModelForm):
             'unit_price': forms.NumberInput(attrs={'class': 'form-control custom-input', 'placeholder': 'Cost per unit'}),
         }
 
-    def clean(self):
-        cleaned_data = super().clean()
-        item = cleaned_data.get('item')
-        unit_price = cleaned_data.get('unit_price')
+    def __init__(self, user=None, *args, **kwargs):
+        super(PurchaseForm, self).__init__(*args, **kwargs)
+        if user:
+            self.fields['item'].queryset = Item.objects.filter(user=user)
 
-        if item and unit_price is not None:
-            # RESTRICTION: If stock exists, Price MUST match the current Buying Price.
-            if item.quantity > 0 and unit_price != item.average_cost:
-                raise forms.ValidationError(
-                    f"Price Conflict! This item is currently in stock at PKR {item.average_cost}. "
-                    "You cannot mix prices. Please create a new item listing for the new price."
-                )
-        return cleaned_data
+    # REMOVED: clean() method that was blocking price changes.
+    # Now, the Purchase.save() method in models.py will handle the averaging math.
 
 class CategoryForm(forms.ModelForm):
     class Meta:

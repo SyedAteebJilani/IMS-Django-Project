@@ -1,4 +1,4 @@
-from django.db import models
+from django.db import models, transaction
 from django.contrib.auth.models import User
 from django.db.models.signals import post_save
 from django.dispatch import receiver
@@ -77,14 +77,35 @@ class Purchase(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
 
     def save(self, *args, **kwargs):
-        if not self.pk:  # Only on create
-            current_qty = self.item.quantity
-            
-            # Logic: If out of stock, reset cost. If in stock, cost remains unless manually updated via Edit.
-            if current_qty <= 0:
-                self.item.average_cost = self.unit_price
-            
-            self.item.quantity += self.quantity
-            self.item.save()
-        
-        super().save(*args, **kwargs)
+        # Start a database transaction to ensure atomicity
+        with transaction.atomic():
+            # Only run this logic if the Purchase is new (pk is None)
+            if not self.pk:
+                # 1. Lock the Item row to prevent race conditions
+                locked_item = Item.objects.select_for_update().get(pk=self.item.pk)
+
+                # 2. Logic: Weighted Average Cost Calculation
+                # Calculate the total value of existing inventory
+                total_current_value = locked_item.quantity * locked_item.average_cost
+                
+                # Calculate the value of the new purchase
+                new_purchase_value = self.quantity * self.unit_price
+                
+                # Determine new total quantity
+                total_new_qty = locked_item.quantity + self.quantity
+
+                # Calculate new average cost (Total Value / Total Quantity)
+                # We guard against division by zero if total_new_qty is 0 or less
+                if total_new_qty > 0:
+                    new_average_cost = (total_current_value + new_purchase_value) // total_new_qty
+                    locked_item.average_cost = new_average_cost
+                
+                # 3. Logic: Update Quantity
+                locked_item.quantity += self.quantity
+                locked_item.save()
+
+                # 4. Update the local instance to match the locked data
+                self.item = locked_item
+
+            # 5. Save the Purchase record normally
+            super().save(*args, **kwargs)

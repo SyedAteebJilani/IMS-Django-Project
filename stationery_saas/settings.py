@@ -1,16 +1,29 @@
 from pathlib import Path
 import os
+from django.core.exceptions import ImproperlyConfigured
+
+# --- ADD THESE LINES ---
+from dotenv import load_dotenv  # Import the library
+load_dotenv()                   # Load the .env file immediately
+# -----------------------
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-&v_t!vu(g!d8q!@4-hjmph9!g&4ir#8f39c_h%zysj(6n49^*o'
+# Fetch from environment variable. Fail if missing.
+SECRET_KEY = os.environ.get('SECRET_KEY')
+
+if not SECRET_KEY:
+    raise ImproperlyConfigured("The SECRET_KEY environment variable is not set.")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# Defaults to False if not set.
+DEBUG = os.environ.get('DEBUG') == 'True'
 
-ALLOWED_HOSTS = ['*']
+# Parse comma-separated hosts from environment, e.g., "localhost,127.0.0.1,example.com"
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '').split(',') if os.environ.get('ALLOWED_HOSTS') else []
+
 
 # Application definition
 

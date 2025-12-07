@@ -273,6 +273,12 @@ class AddPurchaseView(LoginRequiredMixin, CreateView):
     template_name = 'inventory/add_purchase.html'
     success_url = reverse_lazy('dashboard')
 
+    # SECURITY FIX: Pass the user to the form so we can filter items
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
+
     def form_valid(self, form):
         form.instance.user = self.request.user
         return super().form_valid(form)
@@ -302,6 +308,10 @@ class SaleView(LoginRequiredMixin, View):
                 for item_data in cart_items:
                     product_id = item_data.get('id')
                     qty = int(item_data.get('qty'))
+                    
+                    # SECURITY FIX: Validate positive quantity to prevent negative stock injection
+                    if qty <= 0:
+                        raise ValueError("Quantity must be positive.")
                     
                     product = Item.objects.select_for_update().get(pk=product_id, user=request.user)
                     
@@ -356,6 +366,16 @@ def delete_item(request, pk):
     messages.success(request, "Item deleted successfully.")
     return redirect('product_list')
 
+# --- Helper to prevent Formula Injection in CSV/Excel ---
+def sanitize_for_excel(value):
+    """
+    Prepends a single quote to strings starting with =, +, -, @
+    to prevent Excel from executing them as formulae.
+    """
+    if value and isinstance(value, str) and value.startswith(('=', '+', '-', '@')):
+        return f"'{value}"
+    return value
+
 def export_daily_sales(request):
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename="daily_sales.csv"'
@@ -363,7 +383,14 @@ def export_daily_sales(request):
     writer.writerow(['Order ID', 'Date', 'Product Name', 'Qty Sold', 'Unit Price', 'Total Price'])
     sales = SaleRecord.objects.filter(user=request.user, date_sold__date=timezone.now().date())
     for sale in sales:
-        writer.writerow([sale.order_id, sale.date_sold, sale.product.name, sale.quantity, sale.product.selling_price, sale.total_price])
+        writer.writerow([
+            sanitize_for_excel(sale.order_id), 
+            sale.date_sold, 
+            sanitize_for_excel(sale.product.name), 
+            sale.quantity, 
+            sale.product.selling_price, 
+            sale.total_price
+        ])
     return response
 
 def export_monthly_sales(request):
@@ -394,10 +421,11 @@ def export_monthly_sales(request):
             total_cost = cost_price * sale.quantity
             profit = revenue - total_cost
             
+            # SANITIZATION APPLIED HERE
             ws.append([
-                sale.order_id if sale.order_id else "N/A",
-                sale.product.name,
-                sale.product.category.name,
+                sanitize_for_excel(sale.order_id if sale.order_id else "N/A"),
+                sanitize_for_excel(sale.product.name),
+                sanitize_for_excel(sale.product.category.name),
                 sale.date_sold.strftime('%Y-%m-%d'),
                 sale.date_sold.strftime('%B'),
                 sale.date_sold.year,
