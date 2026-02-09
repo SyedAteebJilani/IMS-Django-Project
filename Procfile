@@ -1,0 +1,1 @@
+web: gunicorn stationery_saas.wsgi

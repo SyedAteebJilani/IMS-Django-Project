@@ -1,6 +1,7 @@
 from pathlib import Path
 import os
 from django.core.exceptions import ImproperlyConfigured
+import dj_database_url
 
 # --- ADD THESE LINES ---
 from dotenv import load_dotenv  # Import the library
@@ -45,6 +46,7 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
@@ -68,11 +70,12 @@ TEMPLATES = [
 WSGI_APPLICATION = 'stationery_saas.wsgi.application'
 
 # Database
+# Replace the existing DATABASES dictionary with this:
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    'default': dj_database_url.config(
+        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
+        conn_max_age=600
+    )
 }
 
 # Password validation
