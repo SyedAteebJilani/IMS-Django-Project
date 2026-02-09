@@ -69,7 +69,8 @@ class HomeView(LoginRequiredMixin, TemplateView):
         total_inventory_value = sum(item.total_value for item in all_items)
 
         todays_sales_query = SaleRecord.objects.filter(user=user, date_sold__date=today)
-        sales_today = todays_sales_query.aggregate(sum=Sum('total_price'))['sum'] or 0
+        # Revenue = Total Price - Discount
+        sales_today = todays_sales_query.aggregate(net=Sum(F('total_price') - F('discount')))['net'] or 0
         items_sold_today = todays_sales_query.aggregate(qty=Sum('quantity'))['qty'] or 0
 
         current_month_sales = SaleRecord.objects.filter(
@@ -87,16 +88,10 @@ class HomeView(LoginRequiredMixin, TemplateView):
             date_sold__month=last_day_prev_month.month
         )
 
-        monthly_revenue = current_month_sales.aggregate(sum=Sum('total_price'))['sum'] or 0
+        monthly_revenue = current_month_sales.aggregate(net=Sum(F('total_price') - F('discount')))['net'] or 0
         monthly_items_sold = current_month_sales.aggregate(qty=Sum('quantity'))['qty'] or 0
         
-        monthly_profit = 0
-        for sale in current_month_sales:
-            cost_price = getattr(sale, 'unit_cost_at_sale', 0)
-            if cost_price == 0:
-                cost_price = sale.product.average_cost
-            total_cost = cost_price * sale.quantity
-            monthly_profit += (sale.total_price - total_cost)
+        monthly_profit = sum(sale.profit for sale in current_month_sales) # Uses updated profit property
 
         current_month_records = current_month_sales.select_related('product').order_by('-date_sold')
         previous_month_records = previous_month_sales.select_related('product').order_by('-date_sold')
@@ -105,7 +100,7 @@ class HomeView(LoginRequiredMixin, TemplateView):
         sales_30 = []
         for i in range(30):
             d = today - timedelta(days=29-i)
-            day_sales = SaleRecord.objects.filter(user=user, date_sold__date=d).aggregate(total=Sum('total_price'))['total'] or 0
+            day_sales = SaleRecord.objects.filter(user=user, date_sold__date=d).aggregate(net=Sum(F('total_price') - F('discount')))['net'] or 0
             dates_30.append(d.strftime('%b %d'))
             sales_30.append(int(day_sales))
 
@@ -116,9 +111,9 @@ class HomeView(LoginRequiredMixin, TemplateView):
         top_products_labels = [item['product__name'] for item in top_products_query]
         top_products_data = [item['total_qty'] for item in top_products_query]
 
-        category_query = current_month_sales.values('product__category__name').annotate(total=Sum('total_price')).order_by('-total')
+        category_query = current_month_sales.values('product__category__name').annotate(net=Sum(F('total_price') - F('discount'))).order_by('-net')
         category_labels = [item['product__category__name'] for item in category_query]
-        category_data = [item['total'] for item in category_query]
+        category_data = [item['net'] for item in category_query]
 
         context.update({
             'low_stock_count': low_stock_count,
@@ -204,6 +199,8 @@ class SalesBookView(LoginRequiredMixin, TemplateView):
 
         grouped_orders = defaultdict(lambda: {
             'items': [], 
+            'subtotal': 0,
+            'discount': 0,
             'total_amount': 0, 
             'total_qty': 0, 
             'date': None,
@@ -228,7 +225,9 @@ class SalesBookView(LoginRequiredMixin, TemplateView):
                 sorted_order_ids.append(oid)
             
             grouped_orders[oid]['items'].append(sale)
-            grouped_orders[oid]['total_amount'] += sale.total_price
+            grouped_orders[oid]['subtotal'] += sale.total_price
+            grouped_orders[oid]['discount'] += sale.discount # Summing allocated discounts
+            grouped_orders[oid]['total_amount'] += (sale.total_price - sale.discount)
             grouped_orders[oid]['total_qty'] += sale.quantity
 
         receipts_list = []
@@ -273,7 +272,6 @@ class AddPurchaseView(LoginRequiredMixin, CreateView):
     template_name = 'inventory/add_purchase.html'
     success_url = reverse_lazy('dashboard')
 
-    # SECURITY FIX: Pass the user to the form so we can filter items
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         kwargs['user'] = self.request.user
@@ -288,7 +286,7 @@ class SaleView(LoginRequiredMixin, View):
 
     def get(self, request):
         recent_sales = SaleRecord.objects.filter(user=request.user, date_sold__date=timezone.now().date()).order_by('-date_sold')
-        items = Item.objects.filter(user=request.user).values('id', 'name', 'selling_price', 'quantity')
+        items = Item.objects.filter(user=request.user).values('id', 'name', 'selling_price', 'quantity', 'average_cost')
         products_json = json.dumps(list(items), cls=DjangoJSONEncoder)
         return render(request, self.template_name, {
             'recent_sales': recent_sales,
@@ -299,17 +297,22 @@ class SaleView(LoginRequiredMixin, View):
         try:
             data = json.loads(request.body)
             cart_items = data.get('items', [])
+            flat_discount = int(data.get('discount', 0)) # Accept flat discount
+            
             if not cart_items:
                 return JsonResponse({'status': 'error', 'message': 'Cart is empty'}, status=400)
 
             order_id = f"ORD-{uuid.uuid4().hex[:8].upper()}"
 
             with transaction.atomic():
+                order_subtotal = 0
+                total_order_cost = 0
+                prepared_sales = []
+
                 for item_data in cart_items:
                     product_id = item_data.get('id')
                     qty = int(item_data.get('qty'))
                     
-                    # SECURITY FIX: Validate positive quantity to prevent negative stock injection
                     if qty <= 0:
                         raise ValueError("Quantity must be positive.")
                     
@@ -318,22 +321,41 @@ class SaleView(LoginRequiredMixin, View):
                     if product.quantity < qty:
                         raise ValueError(f"Insufficient stock for {product.name}")
                     
-                    total_price = product.selling_price * qty
+                    line_subtotal = product.selling_price * qty
+                    line_cost = product.average_cost * qty
                     
-                    sale_data = {
+                    order_subtotal += line_subtotal
+                    total_order_cost += line_cost
+                    
+                    prepared_sales.append({
                         'product': product,
                         'quantity': qty,
-                        'total_price': total_price,
+                        'total_price': line_subtotal,
+                        'unit_cost_at_sale': product.average_cost,
                         'user': request.user,
-                        'order_id': order_id 
-                    }
-                    
-                    if hasattr(SaleRecord, 'unit_cost_at_sale'):
-                        sale_data['unit_cost_at_sale'] = product.average_cost
+                        'order_id': order_id
+                    })
+
+                # VALIDATION: (Subtotal - Discount) >= Total Cost
+                if (order_subtotal - flat_discount) < total_order_cost:
+                    raise ValueError(f"Discount is too high! Minimum revenue required: PKR {total_order_cost}")
+
+                # Allocate discount pro-rata across records for accurate reporting
+                num_items = len(prepared_sales)
+                for i, sale_data in enumerate(prepared_sales):
+                    if i == num_items - 1:
+                        # Put remainder in the last item to ensure total matches flat_discount exactly
+                        sale_data['discount'] = flat_discount
+                    else:
+                        # Allocate based on share of subtotal
+                        allocation = (sale_data['total_price'] * flat_discount) // order_subtotal
+                        sale_data['discount'] = allocation
+                        flat_discount -= allocation
 
                     SaleRecord.objects.create(**sale_data)
                     
-                    product.quantity -= qty
+                    product = sale_data['product']
+                    product.quantity -= sale_data['quantity']
                     product.save()
             
             messages.success(request, f"Sale completed! Tracking #: {order_id}")
@@ -366,12 +388,7 @@ def delete_item(request, pk):
     messages.success(request, "Item deleted successfully.")
     return redirect('product_list')
 
-# --- Helper to prevent Formula Injection in CSV/Excel ---
 def sanitize_for_excel(value):
-    """
-    Prepends a single quote to strings starting with =, +, -, @
-    to prevent Excel from executing them as formulae.
-    """
     if value and isinstance(value, str) and value.startswith(('=', '+', '-', '@')):
         return f"'{value}"
     return value
@@ -380,7 +397,7 @@ def export_daily_sales(request):
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename="daily_sales.csv"'
     writer = csv.writer(response)
-    writer.writerow(['Order ID', 'Date', 'Product Name', 'Qty Sold', 'Unit Price', 'Total Price'])
+    writer.writerow(['Order ID', 'Date', 'Product Name', 'Qty Sold', 'Unit Price', 'Total Subtotal', 'Discount', 'Net Total']) #
     sales = SaleRecord.objects.filter(user=request.user, date_sold__date=timezone.now().date())
     for sale in sales:
         writer.writerow([
@@ -389,7 +406,9 @@ def export_daily_sales(request):
             sanitize_for_excel(sale.product.name), 
             sale.quantity, 
             sale.product.selling_price, 
-            sale.total_price
+            sale.total_price,
+            sale.discount,
+            (sale.total_price - sale.discount)
         ])
     return response
 
@@ -406,14 +425,16 @@ def export_monthly_sales(request):
         else:
             ws = workbook.create_sheet(title=title)
         
-        headers = ['Order ID', 'Product / Item', 'Category', 'Date of Sale', 'Month', 'Year', 'Qty Sold', 'Gross Sales', 'Total Cost', 'Net Profit']
+        headers = ['Order ID', 'Product / Item', 'Category', 'Date of Sale', 'Month', 'Year', 'Qty Sold', 'Gross Subtotal', 'Discount', 'Net Sales', 'Total Cost', 'Net Profit'] #
         ws.append(headers)
         
         for cell in ws[1]:
             cell.font = Font(bold=True)
 
         for sale in sales_data:
-            revenue = sale.total_price
+            subtotal = sale.total_price
+            discount = sale.discount
+            revenue = subtotal - discount
             cost_price = getattr(sale, 'unit_cost_at_sale', 0)
             if cost_price == 0:
                 cost_price = sale.product.average_cost
@@ -421,7 +442,6 @@ def export_monthly_sales(request):
             total_cost = cost_price * sale.quantity
             profit = revenue - total_cost
             
-            # SANITIZATION APPLIED HERE
             ws.append([
                 sanitize_for_excel(sale.order_id if sale.order_id else "N/A"),
                 sanitize_for_excel(sale.product.name),
@@ -430,6 +450,8 @@ def export_monthly_sales(request):
                 sale.date_sold.strftime('%B'),
                 sale.date_sold.year,
                 sale.quantity,
+                subtotal,
+                discount,
                 revenue,
                 total_cost,
                 profit

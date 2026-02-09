@@ -2,7 +2,6 @@
 {% block content %}
 
 <style>
-    /* --- Main Container --- */
     .table-container {
         background-color: #ffffff;
         border: 1px solid var(--border-color);
@@ -10,80 +9,35 @@
         box-shadow: 0 4px 6px rgba(0,0,0,0.02);
         overflow: hidden;
     }
-
-    /* --- Outer Summary Table --- */
     .outer-table { width: 100%; border-collapse: collapse; }
-    
     .outer-table th {
         background-color: #f9fafb;
         color: var(--text-muted);
         font-weight: 600;
         text-transform: uppercase;
         font-size: 0.75rem;
-        letter-spacing: 0.05em;
         padding: 1rem 1.5rem;
         border-bottom: 1px solid var(--border-color);
     }
-
-    .outer-row {
-        cursor: pointer;
-        transition: background-color 0.2s;
-        border-bottom: 1px solid var(--border-color);
-    }
+    .outer-row { cursor: pointer; border-bottom: 1px solid var(--border-color); }
     .outer-row:hover { background-color: #f3f4f6; }
-    .outer-row td { padding: 1rem 1.5rem; color: var(--text-main); }
+    .outer-row td { padding: 1rem 1.5rem; }
 
-    /* Toggle Icon Animation */
-    .toggle-icon { transition: transform 0.3s ease; }
-    .outer-row.expanded .toggle-icon { transform: rotate(180deg); }
-
-    /* --- Inner Detail Row & Table --- */
     .detail-row { display: none; background-color: #fafafa; }
     .detail-row.show { display: table-row; }
-    
-    .detail-wrapper {
-        padding: 2rem;
-        border-bottom: 1px solid var(--border-color);
-    }
+    .detail-wrapper { padding: 2rem; border-bottom: 1px solid var(--border-color); }
 
     .inner-table {
         width: 100%;
         background-color: white;
         border-radius: 8px;
-        overflow: hidden;
         border: 1px solid #e5e7eb;
     }
+    .inner-table th { color: #1e3a8a; padding: 0.8rem 1rem; font-size: 0.9rem; }
+    .inner-table td { padding: 0.8rem 1rem; color: #4b5563; font-size: 0.9rem; }
 
-    .inner-table thead {
-        background-color: #f8fafc; /* Very light blue/grey */
-    }
-
-    .inner-table th {
-        color: #1e3a8a; /* Dark Blue text for header */
-        font-weight: 600;
-        text-transform: capitalize;
-        padding: 0.8rem 1rem;
-        font-size: 0.9rem;
-        border-bottom: 1px solid #e5e7eb;
-    }
-
-    .inner-table td {
-        padding: 0.8rem 1rem;
-        color: #4b5563;
-        border-bottom: 1px solid #f3f4f6;
-        font-size: 0.9rem;
-    }
-
-    /* --- Subtotal Section --- */
-    .invoice-footer {
-        display: flex;
-        justify-content: flex-end;
-        margin-top: 1.5rem;
-    }
-    .invoice-totals {
-        width: 250px;
-        text-align: right;
-    }
+    .invoice-footer { display: flex; justify-content: flex-end; margin-top: 1.5rem; }
+    .invoice-totals { width: 300px; text-align: right; }
     .total-row {
         display: flex;
         justify-content: space-between;
@@ -94,36 +48,22 @@
     .grand-total {
         font-size: 1.25rem;
         font-weight: 700;
-        color: #db2777; /* Pink/Redish color from image */
+        color: #db2777;
         border-top: 1px solid #e5e7eb;
         padding-top: 0.5rem;
         margin-top: 0.5rem;
     }
-
-    /* --- Badges --- */
-    .badge-tracking {
-        font-family: monospace;
-        background-color: #eef2ff;
-        color: #4f46e5;
-        padding: 4px 8px;
-        border-radius: 4px;
-        border: 1px solid #c7d2fe;
-    }
+    .badge-tracking { font-family: monospace; background-color: #eef2ff; color: #4f46e5; padding: 4px 8px; border-radius: 4px; }
 </style>
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
-        <h2 class="fw-bold mb-1" style="color: var(--text-main);">Sales Book</h2>
-        <p class="small mb-0" style="color: var(--text-muted);">Expand rows to see receipt details</p>
+        <h2 class="fw-bold mb-1">Sales Book</h2>
+        <p class="small mb-0 text-muted">Expand rows to see receipt details</p>
     </div>
-    
     <form method="get" class="d-flex bg-white rounded-3 border overflow-hidden" style="width: 300px;">
-        <input type="text" name="q" class="form-control border-0 shadow-none px-3" 
-               placeholder="Search Order ID..." 
-               value="{{ search_query|default:'' }}">
-        <button type="submit" class="btn btn-light bg-white border-0 px-3 text-muted">
-            <i class="bi bi-search"></i>
-        </button>
+        <input type="text" name="q" class="form-control border-0 px-3" placeholder="Search Order ID..." value="{{ search_query|default:'' }}">
+        <button type="submit" class="btn btn-light bg-white border-0 px-3 text-muted"><i class="bi bi-search"></i></button>
     </form>
 </div>
 
@@ -135,15 +75,13 @@
                 <th>Order ID</th>
                 <th>Date</th>
                 <th>Items</th>
-                <th class="text-end">Total Amount</th>
+                <th class="text-end">Final Total</th>
             </tr>
         </thead>
         <tbody>
             {% for receipt in receipts %}
             <tr class="outer-row" onclick="toggleDetails('row-{{ forloop.counter }}', this)">
-                <td class="text-center">
-                    <i class="bi bi-chevron-down toggle-icon text-muted"></i>
-                </td>
+                <td class="text-center"><i class="bi bi-chevron-down toggle-icon text-muted"></i></td>
                 <td>
                     {% if not receipt.is_legacy %}
                         <span class="badge-tracking">{{ receipt.order_id }}</span>
@@ -151,20 +89,9 @@
                         <span class="text-muted small fst-italic">Legacy Record</span>
                     {% endif %}
                 </td>
-                <td>
-                    <div class="d-flex flex-column">
-                        <span class="fw-medium">{{ receipt.date|date:"M d, Y" }}</span>
-                        <small class="text-muted" style="font-size: 0.75rem;">{{ receipt.date|date:"H:i A" }}</small>
-                    </div>
-                </td>
-                <td>
-                    <span class="badge bg-secondary bg-opacity-10 text-dark">
-                        {{ receipt.items|length }} Items
-                    </span>
-                </td>
-                <td class="text-end fw-bold" style="color: #10b981;">
-                    PKR {{ receipt.total_amount }}
-                </td>
+                <td>{{ receipt.date|date:"M d, Y" }} <small class="text-muted">{{ receipt.date|date:"H:i A" }}</small></td>
+                <td><span class="badge bg-secondary bg-opacity-10 text-dark">{{ receipt.items|length }} Items</span></td>
+                <td class="text-end fw-bold" style="color: #10b981;">PKR {{ receipt.total_amount }}</td>
             </tr>
 
             <tr id="row-{{ forloop.counter }}" class="detail-row">
@@ -177,7 +104,7 @@
                                     <th>Description</th>
                                     <th>Qty</th>
                                     <th>Unit Price</th>
-                                    <th class="text-end">Total Price</th>
+                                    <th class="text-end">Line Subtotal</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -197,10 +124,14 @@
                             <div class="invoice-totals">
                                 <div class="total-row">
                                     <span>Subtotal</span>
-                                    <span class="fw-bold">{{ receipt.total_amount }}</span>
+                                    <span class="fw-bold">PKR {{ receipt.subtotal }}</span>
                                 </div>
                                 <div class="total-row">
-                                    <span>Shipping</span>
+                                    <span>Discount</span>
+                                    <span class="text-danger">- PKR {{ receipt.discount }}</span>
+                                </div>
+                                <div class="total-row">
+                                    <span>Tax (0%)</span>
                                     <span>0.00</span>
                                 </div>
                                 <div class="total-row grand-total">
@@ -212,9 +143,7 @@
                 </td>
             </tr>
             {% empty %}
-            <tr>
-                <td colspan="5" class="text-center py-5 text-muted">No records found.</td>
-            </tr>
+            <tr><td colspan="5" class="text-center py-5 text-muted">No records found.</td></tr>
             {% endfor %}
         </tbody>
     </table>
@@ -222,20 +151,14 @@
 
 <script>
     function toggleDetails(rowId, clickedRow) {
-        // Toggle the detail row
         const detailRow = document.getElementById(rowId);
         if (detailRow.classList.contains('show')) {
             detailRow.classList.remove('show');
             clickedRow.classList.remove('expanded');
         } else {
-            // Optional: Close others first?
-            // document.querySelectorAll('.detail-row').forEach(r => r.classList.remove('show'));
-            // document.querySelectorAll('.outer-row').forEach(r => r.classList.remove('expanded'));
-            
             detailRow.classList.add('show');
             clickedRow.classList.add('expanded');
         }
     }
 </script>
-
 {% endblock %}
