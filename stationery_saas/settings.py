@@ -23,7 +23,7 @@ if not SECRET_KEY:
 DEBUG = os.environ.get('DEBUG') == 'True'
 
 # Parse comma-separated hosts from environment, e.g., "localhost,127.0.0.1,example.com"
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '').split(',') if os.environ.get('ALLOWED_HOSTS') else []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
