@@ -23,8 +23,7 @@ if not SECRET_KEY:
 DEBUG = os.environ.get('DEBUG') == 'True'
 
 # Parse comma-separated hosts from environment, e.g., "localhost,127.0.0.1,example.com"
-ALLOWED_HOSTS = ['*']
-
+ALLOWED_HOSTS = ['web-production-42a0.up.railway.app', 'localhost', '127.0.0.1']
 
 # Application definition
 
@@ -124,3 +123,20 @@ CSRF_TRUSTED_ORIGINS = [
 
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+
+# Security Settings for Production (Railway)
+if not DEBUG:
+    # Force all connections to use HTTPS
+    SECURE_SSL_REDIRECT = True
+    
+    # Ensure cookies are only sent over HTTPS
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    
+    # Browser security headers
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    
+    # Trust the Railway proxy for HTTPS
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
