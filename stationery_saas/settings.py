@@ -23,7 +23,7 @@ if not SECRET_KEY:
 DEBUG = os.environ.get('DEBUG') == 'True'
 
 # Parse comma-separated hosts from environment, e.g., "localhost,127.0.0.1,example.com"
-ALLOWED_HOSTS = ['web-production-42a0.up.railway.app', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['stationery.up.railway.app', 'localhost', '127.0.0.1']
 
 # Application definition
 
@@ -117,10 +117,9 @@ IMPORT_EXPORT_USE_TRANSACTIONS = True
 
 # Force trust for Railway domain to fix 403 CSRF errors
 CSRF_TRUSTED_ORIGINS = [
-    'https://web-production-42a0.up.railway.app',
+    'https://stationery.up.railway.app',
     'https://*.railway.app'
 ]
-
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
