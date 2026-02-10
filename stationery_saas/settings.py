@@ -1,7 +1,7 @@
 from pathlib import Path
 import os
 from django.core.exceptions import ImproperlyConfigured
-import dj_database_url
+import dj_database_url  
 
 # --- ADD THESE LINES ---
 from dotenv import load_dotenv  # Import the library
