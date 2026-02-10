@@ -114,3 +114,10 @@ LOGIN_URL = 'login'
 
 # Import Export Settings
 IMPORT_EXPORT_USE_TRANSACTIONS = True
+
+
+# Force trust for Railway domain to fix 403 CSRF errors
+CSRF_TRUSTED_ORIGINS = [
+    'https://web-production-42a0.up.railway.app',
+    'https://*.railway.app'
+]
