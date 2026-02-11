@@ -257,8 +257,8 @@ Login → Dashboard Overview → Inventory Management → Add/Edit Products
 **Ateeb Jilani**
 
 [![GitHub](https://img.shields.io/badge/GitHub-SyedAteebJilani-181717?style=for-the-badge&logo=github)](https://github.com/SyedAteebJilani)
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-0077B5?style=for-the-badge&logo=linkedin)](https://linkedin.com/in/your-profile)
-[![Email](https://img.shields.io/badge/Email-Contact-D14836?style=for-the-badge&logo=gmail&logoColor=white)](mailto:your.email@example.com)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-0077B5?style=for-the-badge&logo=linkedin)](https://www.linkedin.com/in/ateeb-jilani-802545353/)
+[![Email](https://img.shields.io/badge/Email-Contact-D14836?style=for-the-badge&logo=gmail&logoColor=white)](mailto:sateebjilani@gmail.com)
 
 *Software Engineer passionate about building practical solutions that solve real-world business problems.*
 
