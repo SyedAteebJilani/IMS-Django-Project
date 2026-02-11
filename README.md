@@ -201,22 +201,22 @@ Login → Dashboard Overview → Inventory Management → Add/Edit Products
 
 *Real-time business metrics and sales performance visualization*
 
+
 ### Inventory Management
-![Inventory](screenshots/inventory.png)
+![Inventory List](screenshots/inventory-list.png)
 *Complete product listing with search, filter, and CRUD operations*
 
-### Point of Sale Interface
-![POS](screenshots/pos.png)
-*Streamlined sales processing with automatic calculations*
+### Point of Sale (POS)
+![POS Interface](screenshots/pos-interface.png)
+*Streamlined sales processing with automatic calculations and stock updates*
 
-### Product Details
-![Product Detail](screenshots/product-detail.png)
-*Comprehensive product information and stock tracking*
+### Add Product
+![Add Product](screenshots/add-product.png)
+*Intuitive form for adding new products with validation*
 
 ### Sales History
-![Sales History](screenshots/sales-history.png)
-*Transaction logs with filtering and export capabilities*
-
+![Sales Book](screenshots/salesBook.png)
+*Comprehensive transaction logs with date filtering and analytics*
 ---
 
 ## 🎥 Demo
